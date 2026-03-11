@@ -1,0 +1,31 @@
+{
+  "name": "dayflow-backend",
+  "version": "1.0.0",
+  "description": "DayFlow App - Node.js REST API Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "migrate": "node migrations/run.js"
+  },
+  "keywords": [
+    "dayflow",
+    "api",
+    "backend"
+  ],
+  "author": "FlyWork Ventures",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "express-validator": "^7.2.1",
+    "firebase-admin": "^13.0.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.1.1",
+    "mysql2": "^3.12.0"
+  }
+}
