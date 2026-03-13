@@ -9,16 +9,17 @@ exports.getByDate = async (req, res, next) => {
 
     if (date) {
       query = `
-        SELECT t.*, GROUP_CONCAT(td.date ORDER BY td.date) AS dates
+        SELECT t.*, GROUP_CONCAT(DATE_FORMAT(td.date, '%Y-%m-%d') ORDER BY td.date) AS dates
         FROM tasks t
+        JOIN task_dates td_filter ON td_filter.task_id = t.id AND td_filter.date = ?
         LEFT JOIN task_dates td ON td.task_id = t.id
-        WHERE t.user_id = ? AND td.date = ?
+        WHERE t.user_id = ?
         GROUP BY t.id
         ORDER BY t.created_at DESC`;
-      params = [req.userId, date];
+      params = [date, req.userId];
     } else {
       query = `
-        SELECT t.*, GROUP_CONCAT(td.date ORDER BY td.date) AS dates
+        SELECT t.*, GROUP_CONCAT(DATE_FORMAT(td.date, '%Y-%m-%d') ORDER BY td.date) AS dates
         FROM tasks t
         LEFT JOIN task_dates td ON td.task_id = t.id
         WHERE t.user_id = ?
@@ -76,7 +77,7 @@ exports.create = async (req, res, next) => {
 
       // Return the full task object
       const [taskRows] = await pool.execute(
-        `SELECT t.*, GROUP_CONCAT(td.date ORDER BY td.date) AS dates
+        `SELECT t.*, GROUP_CONCAT(DATE_FORMAT(td.date, '%Y-%m-%d') ORDER BY td.date) AS dates
          FROM tasks t LEFT JOIN task_dates td ON td.task_id = t.id
          WHERE t.id = ? GROUP BY t.id`,
         [taskId]
@@ -143,7 +144,7 @@ exports.update = async (req, res, next) => {
 
     // Return the full updated task
     const [taskRows] = await pool.execute(
-      `SELECT t.*, GROUP_CONCAT(td.date ORDER BY td.date) AS dates
+      `SELECT t.*, GROUP_CONCAT(DATE_FORMAT(td.date, '%Y-%m-%d') ORDER BY td.date) AS dates
        FROM tasks t LEFT JOIN task_dates td ON td.task_id = t.id
        WHERE t.id = ? GROUP BY t.id`,
       [id]
@@ -174,7 +175,7 @@ exports.toggle = async (req, res, next) => {
 
     // Return the full updated task
     const [taskRows] = await pool.execute(
-      `SELECT t.*, GROUP_CONCAT(td.date ORDER BY td.date) AS dates
+      `SELECT t.*, GROUP_CONCAT(DATE_FORMAT(td.date, '%Y-%m-%d') ORDER BY td.date) AS dates
        FROM tasks t LEFT JOIN task_dates td ON td.task_id = t.id
        WHERE t.id = ? GROUP BY t.id`,
       [id]

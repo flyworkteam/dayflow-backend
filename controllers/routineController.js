@@ -70,12 +70,12 @@ exports.getActive = async (req, res, next) => {
 // POST /api/routines — Create routine and activate for current user
 exports.create = async (req, res, next) => {
   try {
-    const { title, category, description } = req.body;
+    const { title, template_title, category, description, reminder_enabled, is_recurring, start_date, end_date } = req.body;
 
     // Reuse existing routine if same title+category exists in master table
     const [existingRoutineRows] = await pool.execute(
-      'SELECT id FROM routines WHERE title = ? AND category = ? LIMIT 1',
-      [title, category]
+      'SELECT id FROM routines WHERE (title = ? OR template_title = ?) AND category = ? LIMIT 1',
+      [title, template_title || title, category]
     );
 
     let routineId;
@@ -84,9 +84,20 @@ exports.create = async (req, res, next) => {
     } else {
       const iconName = normalizeSlug(title) || 'routine';
       const [insertRes] = await pool.execute(
-        `INSERT INTO routines (category, title, icon_name, color_hex, description, is_premium, sort_order)
-         VALUES (?, ?, ?, ?, ?, 0, 999)`,
-        [category, title, iconName, '#BDB9FF', description ?? null]
+        `INSERT INTO routines (category, title, template_title, icon_name, color_hex, description, reminder_enabled, is_recurring, start_date, end_date, is_premium, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 999)`,
+        [
+          category,
+          title,
+          template_title || title,
+          iconName,
+          '#BDB9FF',
+          description ?? null,
+          reminder_enabled ? 1 : 0,
+          is_recurring ? 1 : 0,
+          start_date ?? null,
+          end_date ?? null,
+        ]
       );
       routineId = insertRes.insertId;
     }
@@ -126,7 +137,7 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const routineId = req.params.id;
-    const { title, category, description } = req.body;
+    const { title, category, description, reminder_enabled, is_recurring, start_date, end_date } = req.body;
 
     const [routineCheck] = await pool.execute('SELECT id FROM routines WHERE id = ?', [routineId]);
     if (routineCheck.length === 0) throw new AppError('Rutin bulunamadı.', 404);
@@ -135,9 +146,22 @@ exports.update = async (req, res, next) => {
       `UPDATE routines SET
         title = COALESCE(?, title),
         category = COALESCE(?, category),
-        description = COALESCE(?, description)
+        description = COALESCE(?, description),
+        reminder_enabled = COALESCE(?, reminder_enabled),
+        is_recurring = COALESCE(?, is_recurring),
+        start_date = COALESCE(?, start_date),
+        end_date = COALESCE(?, end_date)
        WHERE id = ?`,
-      [title ?? null, category ?? null, description ?? null, routineId]
+      [
+        title ?? null,
+        category ?? null,
+        description ?? null,
+        reminder_enabled !== undefined ? (reminder_enabled ? 1 : 0) : null,
+        is_recurring !== undefined ? (is_recurring ? 1 : 0) : null,
+        start_date ?? null,
+        end_date ?? null,
+        routineId,
+      ]
     );
 
     // Ensure user relation exists and stays active after edit
