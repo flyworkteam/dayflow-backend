@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { AppError } = require('../utils/errors');
+const { createNotification } = require('./notificationController');
 
 // GET /api/events?month=M&year=Y
 exports.getByMonth = async (req, res, next) => {
@@ -55,6 +56,20 @@ exports.create = async (req, res, next) => {
     );
 
     const [rows] = await pool.execute('SELECT * FROM events WHERE id = ?', [result.insertId]);
+
+    // Non-blocking: event creation should not fail if notification insert fails.
+    try {
+      await createNotification(
+        req.userId,
+        'Yeni etkinlik eklendi',
+        `"${title}" etkinliği eklendi.`,
+        'task_alt',
+        '#6ACBFF'
+      );
+    } catch (notifyErr) {
+      console.error('Event notification insert failed:', notifyErr.message);
+    }
+
     res.status(201).json({ message: 'Etkinlik oluşturuldu.', event: rows[0] });
   } catch (err) {
     next(err);
