@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { AppError } = require('../utils/errors');
+const { createNotification } = require('./notificationController');
 
 const normalizeSlug = (text) =>
   text
@@ -127,6 +128,20 @@ exports.create = async (req, res, next) => {
 
     if (!rows[0]) throw new AppError('Rutin oluşturulamadı.', 500);
     const routine = { ...rows[0], is_active: rows[0].is_active ? 1 : 0 };
+
+    // Non-blocking: routine creation should not fail if notification insert fails.
+    try {
+      await createNotification(
+        req.userId,
+        'Yeni rutin eklendi',
+        `"${title}" rutini eklendi.`,
+        'psychology_outlined',
+        '#B3B3FF'
+      );
+    } catch (notifyErr) {
+      console.error('Routine notification insert failed:', notifyErr.message);
+    }
+
     res.status(201).json({ message: 'Rutin oluşturuldu.', routine });
   } catch (err) {
     next(err);
