@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { AppError } = require('../utils/errors');
+const { createNotification } = require('./notificationController');
 
 // GET /api/tasks?date=YYYY-MM-DD
 exports.getByDate = async (req, res, next) => {
@@ -83,6 +84,19 @@ exports.create = async (req, res, next) => {
         [taskId]
       );
       const task = { ...taskRows[0], dates: taskRows[0].dates ? taskRows[0].dates.split(',') : [] };
+
+      // Non-blocking: task creation should not fail if notification insert fails.
+      try {
+        await createNotification(
+          req.userId,
+          'Yeni görev eklendi',
+          `"${title}" görevi eklendi.`,
+          'task_alt',
+          '#72E48E'
+        );
+      } catch (notifyErr) {
+        console.error('Task notification insert failed:', notifyErr.message);
+      }
 
       res.status(201).json({ message: 'Görev oluşturuldu.', task });
     } catch (e) {
